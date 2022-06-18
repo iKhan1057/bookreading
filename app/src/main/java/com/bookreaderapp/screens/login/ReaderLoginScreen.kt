@@ -22,27 +22,41 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.bookreaderapp.R
 import com.bookreaderapp.components.EmailInput
 import com.bookreaderapp.components.PasswordInput
 import com.bookreaderapp.components.ReaderLogo
+import com.bookreaderapp.navigation.ReaderScreens
 
 @Composable
-fun ReaderLoginScreen(navController: NavHostController) {
+fun ReaderLoginScreen(
+    navController: NavHostController,
+    loginViewModel: LoginViewModel = viewModel()
+) {
     val showLoginForm = rememberSaveable { mutableStateOf(true) }
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier =Modifier.padding(all= 10.dp),
+            modifier = Modifier.padding(all = 10.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = CenterHorizontally
         ) {
             ReaderLogo()
             if (showLoginForm.value)
                 UserForm(false, isCreateAccount = false) { email, password ->
+                    loginViewModel.signInWithEmailAndPassword(email = email, password = password) {
+                        navController.navigate(ReaderScreens.ReaderHomeScreen.name)
+                    }
                 }
             else
                 UserForm(false, isCreateAccount = true) { email, password ->
+                    loginViewModel.createUserWithEmailAndPassword(
+                        email = email,
+                        password = password
+                    ) {
+                        navController.navigate(ReaderScreens.ReaderHomeScreen.name)
+                    }
                 }
 
 
@@ -91,8 +105,12 @@ fun UserForm(
         .verticalScroll(rememberScrollState())
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        if (isCreateAccount) Text(text = stringResource(id = R.string.create_acct),
-            modifier = Modifier.padding(4.dp).align(alignment = CenterHorizontally)) else Text("")
+        if (isCreateAccount) Text(
+            text = stringResource(id = R.string.create_acct),
+            modifier = Modifier
+                .padding(4.dp)
+                .align(alignment = CenterHorizontally)
+        ) else Text("")
 
         EmailInput(emailState = email, enabled = !loading, onAction = KeyboardActions {
             passwordFocusRequest.requestFocus()

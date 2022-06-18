@@ -1,4 +1,5 @@
 package com.bookreaderapp.screens.splash
+
 import android.view.animation.OvershootInterpolator
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -27,28 +28,34 @@ fun ReaderSplashScreen(navController: NavHostController) {
     val scale = remember {
         Animatable(0f)
     }
-    LaunchedEffect(key1 = true ){
-        scale.animateTo(targetValue = 0.9f,
+    LaunchedEffect(key1 = true) {
+        scale.animateTo(
+            targetValue = 0.9f,
             animationSpec = tween(durationMillis = 800,
                 easing = {
                     OvershootInterpolator(8f)
                         .getInterpolation(it)
-                }))
+                })
+        )
         delay(2000L)
-        if (FirebaseAuth.getInstance().currentUser?.email.isNullOrEmpty()){
+        if (FirebaseAuth.getInstance().currentUser?.email.isNullOrEmpty()) {
             navController.navigate(ReaderScreens.LoginScreen.name)
-        }else {
+        } else {
             navController.navigate(ReaderScreens.ReaderHomeScreen.name)
         }
     }
-    Surface(modifier = Modifier
-        .padding(15.dp)
-        .size(330.dp)
-        .scale(scale.value),
+    Surface(
+        modifier = Modifier
+            .padding(15.dp)
+            .size(330.dp)
+            .scale(scale.value),
         shape = CircleShape,
         color = Color.White,
-        border = BorderStroke(width = 2.dp,
-            color = Color.LightGray)) {
+        border = BorderStroke(
+            width = 2.dp,
+            color = Color.LightGray
+        )
+    ) {
         Column(
             modifier = Modifier.padding(1.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -56,9 +63,11 @@ fun ReaderSplashScreen(navController: NavHostController) {
         ) {
             ReaderLogo()
             Spacer(modifier = Modifier.height(15.dp))
-            Text(text = "\"Read. Change. Yourself \"",
+            Text(
+                text = "\"Read. Change. Yourself \"",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Color.LightGray)
+                color = Color.LightGray
+            )
         }
     }
 }
