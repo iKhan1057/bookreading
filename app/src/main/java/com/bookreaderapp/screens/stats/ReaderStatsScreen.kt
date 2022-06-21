@@ -1,8 +1,190 @@
 package com.bookreaderapp.screens.stats
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.sharp.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberImagePainter
+import com.bookreaderapp.components.ReaderAppBar
+import com.bookreaderapp.model.Book
+import com.bookreaderapp.model.MBook
+import com.bookreaderapp.screens.home.HomeScreenViewModel
+import com.bookreaderapp.utils.formatDate
+import com.google.firebase.auth.FirebaseAuth
+import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReaderStatsScreen(navController: NavHostController) {
+fun ReaderStatsScreen(navController: NavHostController,
+                      homeViewModel: HomeScreenViewModel= hiltViewModel()) {
+    var books: List<MBook>
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    Scaffold(topBar = {
+        ReaderAppBar(
+            title = "Update Screen",
+            showProfile = false,
+            icon = Icons.Default.ArrowBack,
+            navController = navController
+        ) { navController.popBackStack() }
+    }){
+        Surface(modifier = Modifier.padding(it)) {
+            //only show books by this user that have been read
+            books = if (!homeViewModel.data.value.data.isNullOrEmpty()) {
+                homeViewModel.data.value.data!!.filter { mBook ->
+                    (mBook.userId == currentUser?.uid)
+                }
+            }else {
+                emptyList()
+            }
+            Column {
+                Row {
+                    Box(modifier = Modifier
+                        .size(45.dp)
+                        .padding(2.dp)) {
+                        Icon(imageVector = Icons.Sharp.Person,
+                            contentDescription = "icon" )
+                    }
+                    //paul @ me.com
+                    Text(text = "Hi, ${
+                        currentUser?.email.toString().split("@")[0].uppercase(Locale.getDefault())
+                    }")
+
+                }
+                ElevatedCard(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp),
+                    shape = CircleShape
+                ) {
+                    val readBooksList: List<MBook> = if (!homeViewModel.data.value.data.isNullOrEmpty()) {
+                        books.filter { mBook ->
+                            (mBook.userId == currentUser?.uid) && (mBook.finishedReading != null)
+                        }
+
+                    }else {
+                        emptyList()
+                    }
+
+                    val readingBooks = books.filter { mBook ->
+                        (mBook.startedReading != null && mBook.finishedReading == null)
+                    }
+
+                    Column(modifier = Modifier.padding(start = 25.dp, top = 4.dp, bottom = 4.dp),
+                        horizontalAlignment = Alignment.Start) {
+                        Text(text = "Your Stats", style = MaterialTheme.typography.labelSmall)
+                        Divider()
+                        Text(text = "You're reading: ${readingBooks.size} books")
+                        Text(text = "You've read: ${readBooksList.size} books")
+
+                    }
+
+                }
+
+                if (homeViewModel.data.value.loading == true) {
+                    LinearProgressIndicator()
+                }else {
+                    Divider()
+                    LazyColumn(modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                        contentPadding = PaddingValues(16.dp)
+                    ){
+                        //filter books by finished ones
+                        val readBooks: List<MBook> = if (!homeViewModel.data.value.data.isNullOrEmpty()){
+                            homeViewModel.data.value.data!!.filter { mBook ->
+                                (mBook.userId == currentUser?.uid) && (mBook.finishedReading != null)
+                            }
+                        }else {
+                            emptyList()
+
+                        }
+                        items(items = readBooks) {book ->
+                            BookRowStats(book = book )
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BookRowStats(
+    book: MBook) {
+    ElevatedCard(modifier = Modifier
+        .clickable {
+            //navController.navigate(ReaderScreens.DetailScreen.name + "/${book.id}")
+        }
+        .fillMaxWidth()
+        .height(100.dp)
+        .padding(3.dp),
+        shape = RectangleShape,
+        ) {
+        Row(modifier = Modifier.padding(5.dp),
+            verticalAlignment = Alignment.Top) {
+
+            val imageUrl: String = if(book.photoUrl.toString().isEmpty())
+                "https://images.unsplash.com/photo-1541963463532-d68292c34b19?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=80&q=80"
+            else {
+                book.photoUrl.toString()
+            }
+            Image(
+                painter = rememberImagePainter(data = imageUrl),
+                contentDescription = "book image",
+                modifier = Modifier
+                    .width(80.dp)
+                    .fillMaxHeight()
+                    .padding(end = 4.dp),
+            )
+
+            Column {
+
+                Row(horizontalArrangement = Arrangement.SpaceBetween) {
+
+                    Text(text = book.title.toString(), overflow = TextOverflow.Ellipsis)
+                    if (book.rating!! >= 4) {
+                        Spacer(modifier = Modifier.fillMaxWidth(0.8f))
+                        Icon(imageVector = Icons.Default.ThumbUp,
+                            contentDescription = "Thumbs up",
+                            tint = Color.Green.copy(alpha = 0.5f))
+                    }else {
+                        Box{}
+                    }
+                }
+                Text(text =  "Author: ${book.authors}",
+                    overflow = TextOverflow.Clip,
+                    fontStyle = FontStyle.Italic,
+                    style = MaterialTheme.typography.bodySmall)
+
+                Text(text =  "Started: ${formatDate(book.startedReading!!)}",
+                    softWrap = true,
+                    overflow = TextOverflow.Clip,
+                    fontStyle = FontStyle.Italic,
+                    style = MaterialTheme.typography.bodySmall)
+
+                Text(text =  "Finished ${formatDate(book.finishedReading!!)}",
+                    overflow = TextOverflow.Clip,
+                    fontStyle = FontStyle.Italic,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
 }

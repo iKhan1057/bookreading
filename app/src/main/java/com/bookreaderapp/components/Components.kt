@@ -166,7 +166,7 @@ fun ReaderAppBar(
                         contentDescription = "Logo Icon",
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .scale(0.9f)
+                            .scale(0.9f), tint = Color.White
                     )
                 }
                 if (icon != null) {
@@ -276,15 +276,14 @@ fun ListCard(
                 Column(
                     modifier = Modifier.padding(top = 25.dp),
                     verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.FavoriteBorder,
                         contentDescription = "Fav Icon",
                         modifier = Modifier.padding(bottom = 1.dp)
                     )
-
-                    BookRating()
+                    BookRating(book.rating!!)
                 }
 
             }
@@ -311,6 +310,7 @@ fun ListCard(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.Bottom
         ) {
+//            isStartedReading.value = book.startedReading != null
             isStartedReading.value = true
             RoundedButton(
                 label = if (isStartedReading.value) "Reading" else "Not Yet",
@@ -364,8 +364,9 @@ fun BookRating(score: Double = 4.5) {
         tonalElevation = 6.dp,
         color = Color.LightGray
     ) {
-        Column(modifier = Modifier.padding(4.dp)
-            ) {
+        Column(
+            modifier = Modifier.padding(4.dp)
+        ) {
             Icon(
                 imageVector = Icons.Filled.StarBorder, contentDescription = "Start",
                 modifier = Modifier.padding(3.dp)
@@ -375,9 +376,64 @@ fun BookRating(score: Double = 4.5) {
                 modifier = Modifier.align(alignment = CenterHorizontally),
                 style = MaterialTheme.typography.labelSmall
             )
+
+        }
+
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun RatingBar(
+    modifier: Modifier = Modifier,
+    rating: Int,
+    onPressRating: (Int) -> Unit
+) {
+    var ratingState by remember {
+        mutableStateOf(rating)
+    }
+
+    var selected by remember {
+        mutableStateOf(false)
+    }
+    val size by animateDpAsState(
+        targetValue = if (selected) 42.dp else 34.dp,
+        spring(Spring.DampingRatioMediumBouncy)
+    )
+
+    Row(
+        modifier = Modifier.width(280.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        for (i in 1..5) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_baseline_star_24),
+                contentDescription = "star",
+                modifier = modifier
+                    .width(size)
+                    .height(size)
+                    .pointerInteropFilter {
+                        when (it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                selected = true
+                                onPressRating(i)
+                                ratingState = i
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                selected = false
+                            }
+                        }
+                        true
+                    },
+                tint = if (i <= ratingState) Color(0xFFFFD700) else Color(0xFFA2ADB1)
+            )
         }
     }
 }
 
 
-
+fun showToast(context: Context, msg: String) {
+    Toast.makeText(context, msg, Toast.LENGTH_LONG)
+        .show()
+}
